@@ -11,7 +11,7 @@ permissions:
   id-token: write
   issues: write
   pull-requests: write
-  security-events: write 
+  security-events: write
   actions: read
 
 jobs:
@@ -50,7 +50,7 @@ jobs:
     sast-scan:
         runs-on: ubuntu-latest
         needs: secret-scanning
-        if: ${{ !cancelled() }} 
+        if: ${{ !cancelled() }}
         steps:
             - name: Checkout code
               uses: actions/checkout@v4
@@ -71,7 +71,7 @@ jobs:
     codeql-scan:
         runs-on: ubuntu-latest
         needs: secret-scanning
-        if: ${{ !cancelled() }} 
+        if: ${{ !cancelled() }}
         strategy:
             matrix:
                 language: [ 'javascript-typescript' ]
@@ -120,7 +120,7 @@ jobs:
                     --enableRetired
 
             - name: Upload Depcheck SARIF to Security tab
-              if: always() 
+              if: always()
               uses: github/codeql-action/upload-sarif@v3
               continue-on-error: true
               with:
@@ -128,7 +128,7 @@ jobs:
                   category: dependency-check
 
             - name: Upload Depcheck HTML report as artifact
-              if: always() 
+              if: always()
               uses: actions/upload-artifact@v4
               with:
                 name: depcheck-report
@@ -169,4 +169,3 @@ jobs:
               with:
                 name: trivy-report
                 path: trivy-results.sarif
-
