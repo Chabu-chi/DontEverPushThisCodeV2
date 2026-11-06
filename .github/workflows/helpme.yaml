@@ -57,19 +57,6 @@ jobs:
               with:
                 fetch-depth: 0
 
-            - name: Select CI based SonarCloud analysis
-              env:
-                SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-                SONAR_PROJECT_KEY: ${{ vars.SONAR_PROJECT_KEY }}
-              run: |
-                python3 - <<'PYSONAR'
-                import os, urllib.request, urllib.parse
-                data = urllib.parse.urlencode({'projectKey': os.environ['SONAR_PROJECT_KEY'], 'enable': 'false'}).encode()
-                req = urllib.request.Request('https://sonarcloud.io/api/autoscan/activation', data=data, headers={'Authorization': 'Bearer ' + os.environ['SONAR_TOKEN']})
-                with urllib.request.urlopen(req, timeout=30) as response:
-                    print('Selected CI analysis; HTTP ' + str(response.status))
-                PYSONAR
-
             - name: SonarQube Scan
               uses: SonarSource/sonarqube-scan-action@v7.1.0
               continue-on-error: true
