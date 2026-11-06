@@ -57,6 +57,34 @@ jobs:
               with:
                 fetch-depth: 0
 
+            - name: Discover SonarCloud project configuration
+              id: sonar-config
+              env:
+                SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+              run: |
+                python3 - <<'PYSONAR'
+                import json, os, urllib.request, urllib.parse
+                def get(path, params):
+                    url = 'https://sonarcloud.io/api/' + path + '?' + urllib.parse.urlencode(params)
+                    req = urllib.request.Request(url, headers={'Authorization': 'Bearer ' + os.environ['SONAR_TOKEN']})
+                    with urllib.request.urlopen(req, timeout=30) as response:
+                        return json.load(response)
+                organizations = get('organizations/search', {'member': 'true', 'ps': 100}).get('organizations', [])
+                matches = []
+                for org in organizations:
+                    projects = get('components/search', {'organization': org['key'], 'qualifiers': 'TRK', 'q': 'DontEverPushThisCodeV2', 'ps': 100})
+                    for project in projects.get('components', []):
+                        if 'donteverpushthiscodev2' in (project['key'] + ' ' + project['name']).lower():
+                            matches.append((org['key'], project['key']))
+                if len(matches) != 1:
+                    raise SystemExit('Expected one imported workshop project; matched ' + str(len(matches)))
+                org, key = matches[0]
+                with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+                    output.write('organization=' + org + '\nproject_key=' + key + '\n')
+                print('Workshop Sonar organization: ' + org)
+                print('Workshop Sonar project key: ' + key)
+                PYSONAR
+
             - name: SonarQube Scan
               uses: SonarSource/sonarqube-scan-action@v7.1.0
               continue-on-error: true
@@ -65,8 +93,8 @@ jobs:
               with:
                 args: >
                   -Dsonar.host.url=https://sonarcloud.io
-                  -Dsonar.organization=${{ vars.SONAR_ORGANIZATION }}
-                  -Dsonar.projectKey=${{ vars.SONAR_PROJECT_KEY }}
+                  -Dsonar.organization=${{ vars.SONAR_ORGANIZATION || steps.sonar-config.outputs.organization }}
+                  -Dsonar.projectKey=${{ vars.SONAR_PROJECT_KEY || steps.sonar-config.outputs.project_key }}
 
     codeql-scan:
         runs-on: ubuntu-latest
